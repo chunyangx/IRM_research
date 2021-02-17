@@ -60,8 +60,10 @@ for restart in range(flags.n_restarts):
     images = torch.stack([images, images], dim=1)
     images[torch.tensor(range(len(images))), (1-colors).long(), :, :] *= 0
     return {
-      'images': (images.float() / 255.).cuda(),
-      'labels': labels[:, None].cuda()
+      #'images': (images.float() / 255.).cuda(),
+      #'labels': labels[:, None].cuda()
+      'images': (images.float() / 255.),
+      'labels': labels[:, None]
     }
 
   envs = [
@@ -93,8 +95,8 @@ for restart in range(flags.n_restarts):
       out = self._main(out)
       return out
 
-  mlp = MLP().cuda()
-
+  # mlp = MLP().cuda()
+  mlp = MLP()
   # Define loss function helpers
 
   def mean_nll(logits, y):
@@ -105,7 +107,8 @@ for restart in range(flags.n_restarts):
     return ((preds - y).abs() < 1e-2).float().mean()
 
   def penalty(logits, y):
-    scale = torch.tensor(1.).cuda().requires_grad_()
+    #scale = torch.tensor(1.).cuda().requires_grad_()
+    scale = torch.tensor(1.).requires_grad_()
     loss = mean_nll(logits * scale, y)
     grad = autograd.grad(loss, [scale], create_graph=True)[0]
     return torch.sum(grad**2)
@@ -136,7 +139,8 @@ for restart in range(flags.n_restarts):
     train_acc = torch.stack([envs[0]['acc'], envs[1]['acc']]).mean()
     train_penalty = torch.stack([envs[0]['penalty'], envs[1]['penalty']]).mean()
 
-    weight_norm = torch.tensor(0.).cuda()
+    # weight_norm = torch.tensor(0.).cuda()
+    weight_norm = torch.tensor(0.)
     for w in mlp.parameters():
       weight_norm += w.norm().pow(2)
 

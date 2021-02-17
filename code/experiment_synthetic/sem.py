@@ -18,8 +18,8 @@ class ChainEquationModel(object):
             self.wxy = torch.eye(self.dim)
             self.wyz = torch.eye(self.dim)
         else:
-            self.wxy = torch.randn(self.dim, self.dim) / dim
-            self.wyz = torch.randn(self.dim, self.dim) / dim
+            self.wxy = torch.randn(self.dim, self.dim) / dim * 10
+            self.wyz = torch.randn(self.dim, self.dim) / dim * 10
 
         if scramble:
             self.scramble, _ = torch.qr(torch.randn(dim, dim))
