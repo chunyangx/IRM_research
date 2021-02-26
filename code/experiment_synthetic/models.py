@@ -27,67 +27,6 @@ def pretty(vector):
     vlist = vector.view(-1).tolist()
     return "[" + ", ".join("{:+.4f}".format(vi) for vi in vlist) + "]"
 
-
-class RInvariantRiskMinimization(object):
-    
-    def __init__(self, environments, args):
-        best_reg = 0
-        best_err = 1e6
-        
-        x_val = environments[-1][0]
-        y_val = environments[-1][1]
-
-        for reg in [100, 300, 500, 700]:
-            self.train(environments, args, reg=reg)
-            err = (x_val @ self.solution() - y_val).pow(2).mean().item()
-
-            if args["verbose"]:
-                print("RIRM (reg={:.5f}) has {:.3f} validation error.".format(
-                    reg, err))
-
-            if err < best_err:
-                best_err = err
-                best_reg = reg
-                best_w = self.w.clone()
-        self.w = best_w
-
-    def train(self, environments, args, reg=0):
-        dim_x = environments[0][0].size(1)
-        self.w = torch.empty(dim_x, 1)
-        torch.nn.init.normal_(self.w, mean=0.0, std=0.01)
-        self.w.requires_grad = True
-
-        opt = torch.optim.Adam([self.w], lr=args["lr"])
-        loss = torch.nn.MSELoss()
-
-        for iteration in range(args["n_iterations"]):
-            env1, env2 = random.sample(range(len(environments)), 2)
-            error_e1 = 0
-            error_e2 = 0
-            x_e = environments[env1][0]
-            y_e = environments[env1][1]
-            error_e1 += loss(x_e @ self.w, y_e)
-            x_e = environments[env2][0]
-            y_e = environments[env2][1]
-            error_e2 += loss(x_e @ self.w, y_e)
-            
-            opt.zero_grad()
-            penalty = ((error_e1 - error_e2)/1000).pow(2) 
-            (error_e1 + error_e2 + reg*penalty).backward()
-            opt.step()
-            
-            if args["verbose"] and iteration % 1000 == 0:
-                w_str = pretty(self.solution())
-                print("{:05d} | {:.5f} | {:.5f} | {:.5f} | {}".format(iteration,
-                                                                      reg,
-                                                                      error_e1 + error_e2,
-                                                                      penalty,
-                                                                      w_str))
-
-
-    def solution(self):
-        return self.w
-
 class InvariantRiskMinimization(object):
     def __init__(self, environments, args):
         best_reg = 0
@@ -122,7 +61,7 @@ class InvariantRiskMinimization(object):
         for iteration in range(args["n_iterations"]):
             penalty = 0
             error = 0
-            for x_e, y_e in environments:
+            for x_e, y_e in environments[:-1]:
                 error_e = loss(x_e @ self.phi @ self.w, y_e)
                 penalty += grad(error_e, self.w,
                                 create_graph=True)[0].pow(2).mean()
@@ -143,18 +82,62 @@ class InvariantRiskMinimization(object):
     def solution(self):
         return (self.phi @ self.w).view(-1, 1)
 
+
+class IInvariantRiskMinimization(object):
+    def __init__(self, environments, args):
+        x_val = environments[-1][0]
+        y_val = environments[-1][1]
+
+        best_err = 1e6
+        best_weight = None
+        for K in (1, 10, 100):
+            self.train(environments, args, K)
+            err = (x_val @ self.solution() - y_val).pow(2).mean().item()
+            if err < best_err:
+                best_weight = self.w.clone()
+ 
+        if args["verbose"]:
+            print("IIRM has {:.3f} validation error.".format(err))
+
+        self.w = best_weight
+
+    def train(self, environments, args, reg=0, K = 1):
+        dim_x = environments[0][0].size(1)
+        self.w = torch.ones(dim_x, 1)
+        self.w.requires_grad = True
+        
+        opt = torch.optim.Adam([self.w], lr=args["lr"])
+        loss = torch.nn.MSELoss()
+        for iteration in range(args["n_iterations"]):
+            error = 0
+            for i in range(K):
+                for index in range(len(environments[:-1])):
+                    opt.zero_grad()
+                    x_e, y_e = environments[index]
+                    error += loss(x_e @ self.w, y_e)
+            error.backward()
+            opt.step()
+
+            if args["verbose"] and iteration % 1000 == 0:
+                w_str = pretty(self.solution())
+                print("{:05d} | {:.5f} | {}".format(iteration,
+                                                    error,
+                                                    w_str))
+
+    def solution(self):
+        return self.w.view(-1, 1)
+
+
 class IIInvariantRiskMinimization(object):
     def __init__(self, environments, args):
         x_val = environments[-1][0]
         y_val = environments[-1][1]
 
         self.train(environments, args)
-        err = (x_val @ self.solution() - y_val).pow(2).mean().item()
-
         if args["verbose"]:
-            print("IIRM has {:.3f} validation error.".format(err))
+            print("IIIRM has {:.3f} validation error.".format(err))
 
-    def train(self, environments, args, reg=0):
+    def train(self, environments, args):
         dim_x = environments[0][0].size(1)
         self.w = torch.ones(dim_x, 1)
         self.w.requires_grad = True
@@ -162,7 +145,6 @@ class IIInvariantRiskMinimization(object):
         opt = torch.optim.Adam([self.w], lr=args["lr"])
         loss = torch.nn.MSELoss()
         n = 100
-        #for iteration in range(args["n_iterations"]):
         for iteration in range(10000):
             for index in range(len(environments)):
                 x_e, y_e = environments[index]
@@ -262,8 +244,8 @@ class InvariantCausalPrediction(object):
 
 class EmpiricalRiskMinimizer(object):
     def __init__(self, environments, args):
-        x_all = torch.cat([x for (x, y) in environments]).numpy()
-        y_all = torch.cat([y for (x, y) in environments]).numpy()
+        x_all = torch.cat([x for (x, y) in environments[:-1]]).numpy()
+        y_all = torch.cat([y for (x, y) in environments[:-1]]).numpy()
 
         w = LinearRegression(fit_intercept=False).fit(x_all, y_all).coef_
         self.w = torch.Tensor(w).view(-1, 1)

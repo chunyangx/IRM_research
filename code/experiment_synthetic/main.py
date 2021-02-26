@@ -61,8 +61,8 @@ def run_experiment(args):
         "ERM": EmpiricalRiskMinimizer,
         "ICP": InvariantCausalPrediction,
         "IRM": InvariantRiskMinimization,
-        "RIRM": RInvariantRiskMinimization,
-        "IIRM": IIInvariantRiskMinimization
+        "IIRM": IInvariantRiskMinimization,
+        "IIIRM": IIInvariantRiskMinimization 
     }
 
     if args["methods"] == "all":
@@ -121,18 +121,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Invariant regression')
     parser.add_argument('--dim', type=int, default=10)
     parser.add_argument('--n_samples', type=int, default=1000)
-    # parser.add_argument('--n_reps', type=int, default=10)
-    parser.add_argument('--n_reps', type=int, default=1)
-    parser.add_argument('--skip_reps', type=int, default=0)
+    parser.add_argument('--n_reps', type=int, default=2)
+    # parser.add_argument('--n_reps', type=int, default=1)
     parser.add_argument('--seed', type=int, default=0)  # Negative is random
     parser.add_argument('--print_vectors', type=int, default=1)
     parser.add_argument('--n_iterations', type=int, default=100000)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--verbose', type=int, default=1)
     # parser.add_argument('--methods', type=str, default="ERM,ICP,IRM")
-    parser.add_argument('--methods', type=str, default="ERM,IIRM,IRM")
+    parser.add_argument('--methods', type=str, default="ERM,IIRM,IRM,IIIRM")
     parser.add_argument('--alpha', type=float, default=0.05)
-    parser.add_argument('--env_list', type=str, default=".2,2.,5.")
+    parser.add_argument('--env_list', type=str, default=".2,2.,3.,5.")
     parser.add_argument('--setup_sem', type=str, default="chain")
     parser.add_argument('--setup_ones', type=int, default=0)
     parser.add_argument('--setup_hidden', type=int, default=0)
