@@ -9,7 +9,7 @@ import torch
 
 
 class ChainEquationModel(object):
-    def __init__(self, dim, ones=True, scramble=False, hetero=True, hidden=False):
+    def __init__(self, dim, scale, ones=True, scramble=False, hetero=True, hidden=False):
         self.hetero = hetero
         self.hidden = hidden
         self.dim = dim // 2
@@ -18,8 +18,8 @@ class ChainEquationModel(object):
             self.wxy = torch.eye(self.dim)
             self.wyz = torch.eye(self.dim)
         else:
-            self.wxy = torch.randn(self.dim, self.dim) / dim * 10
-            self.wyz = torch.randn(self.dim, self.dim) / dim * 10
+            self.wxy = torch.randn(self.dim, self.dim) / dim * scale
+            self.wyz = torch.randn(self.dim, self.dim) / dim * scale
 
         if scramble:
             self.scramble, _ = torch.qr(torch.randn(dim, dim))

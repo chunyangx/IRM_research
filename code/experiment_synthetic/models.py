@@ -83,7 +83,7 @@ class InvariantRiskMinimization(object):
         return (self.phi @ self.w).view(-1, 1)
 
 
-class IInvariantRiskMinimization(object):
+class ERMSGD(object):
     def __init__(self, environments, args):
         x_val = environments[-1][0]
         y_val = environments[-1][1]
@@ -117,42 +117,6 @@ class IInvariantRiskMinimization(object):
                     error += loss(x_e @ self.w, y_e)
             error.backward()
             opt.step()
-
-            if args["verbose"] and iteration % 1000 == 0:
-                w_str = pretty(self.solution())
-                print("{:05d} | {:.5f} | {}".format(iteration,
-                                                    error,
-                                                    w_str))
-
-    def solution(self):
-        return self.w.view(-1, 1)
-
-
-class IIInvariantRiskMinimization(object):
-    def __init__(self, environments, args):
-        x_val = environments[-1][0]
-        y_val = environments[-1][1]
-
-        self.train(environments, args)
-        if args["verbose"]:
-            print("IIIRM has {:.3f} validation error.".format(err))
-
-    def train(self, environments, args):
-        dim_x = environments[0][0].size(1)
-        self.w = torch.ones(dim_x, 1)
-        self.w.requires_grad = True
-        
-        opt = torch.optim.Adam([self.w], lr=args["lr"])
-        loss = torch.nn.MSELoss()
-        n = 100
-        for iteration in range(10000):
-            for index in range(len(environments)):
-                x_e, y_e = environments[index]
-                for i in range(n):
-                    opt.zero_grad()
-                    error = loss(x_e @ self.w, y_e)
-                    error.backward()
-                    opt.step()
 
             if args["verbose"] and iteration % 1000 == 0:
                 w_str = pretty(self.solution())
