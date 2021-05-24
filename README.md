@@ -1,14 +1,6 @@
-# Code repository for Invariant Risk Minimization
+# Better unit tests for Invariant Risk Minimization
 
-Source code for [the paper](https://arxiv.org/abs/1907.02893v1):
+Compared to orginal [IRM paper](https://arxiv.org/abs/1907.02893v1), we add:
+- Scale parameters and show that IRM particularly suffers from very mild changes
+- We added a simple ERM implementation based on sgd and verifies that ERM doesn't suffer these mild changes.
 
-```
-@article{InvariantRiskMinimization,
-    title={Invariant Risk Minimization},
-    author={Arjovsky, Martin and Bottou, L{\'e}on and Gulrajani, Ishaan and Lopez-Paz, David},
-    journal={arXiv},
-    year={2019}
-}
-```
-
-Repository licensed under [LICENSE](LICENSE).
